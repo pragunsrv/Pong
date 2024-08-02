@@ -71,6 +71,10 @@ let difficulty = 1;
 let isTournamentMode = false;
 let isSpectatorMode = false;
 let powerUpType = "speed"; // Can be "speed" or "size"
+let aiEnabled = true;
+let playerWins = 0;
+let aiWins = 0;
+let totalGames = 0;
 
 function drawRect(x, y, w, h, color) {
     context.fillStyle = color;
@@ -193,20 +197,21 @@ function update() {
             }
         }
 
-        if (player.powerUp && Date.now() - powerUpTimer > powerUpDuration) {
-            deactivatePowerUp(player);
+        if (player.powerUp) {
+            if (Date.now() - powerUpTimer > powerUpDuration) {
+                deactivatePowerUp(player);
+            }
         }
 
-        if (speedBoost && Date.now() - speedBoostTimer > 5000) { // Speed boost lasts 5 seconds
-            speedBoost = false;
-            ball.speed -= 2;
+        if (speedBoost) {
+            if (Date.now() - speedBoostTimer > 5000) { // Speed boost lasts for 5 seconds
+                ball.speed -= 2;
+                speedBoost = false;
+            }
         }
 
-        // Adaptive AI Difficulty
-        if (player.score > ai.score) {
-            ai.difficulty = aiDifficulties[Math.min(player.score, aiDifficulties.length - 1)];
-        } else {
-            ai.difficulty = aiDifficulties[Math.min(ai.score, aiDifficulties.length - 1)];
+        if (isTournamentMode) {
+            totalGames = player.score + ai.score;
         }
     }
 }
@@ -332,6 +337,18 @@ function changePaddleColor() {
     player.color = colorOptions[currentColorIndex];
 }
 
+function toggleAI() {
+    aiEnabled = !aiEnabled;
+    document.getElementById("toggleAIButton").textContent = aiEnabled ? "Disable AI" : "Enable AI";
+}
+
+function showStatistics() {
+    document.getElementById("statistics").style.display = "block";
+    document.getElementById("playerWins").textContent = playerWins;
+    document.getElementById("aiWins").textContent = aiWins;
+    document.getElementById("totalGames").textContent = totalGames;
+}
+
 document.getElementById("pauseButton").addEventListener("click", pauseGame);
 document.getElementById("resumeButton").addEventListener("click", resumeGame);
 document.getElementById("startTournamentButton").addEventListener("click", startTournament);
@@ -340,6 +357,9 @@ document.getElementById("changeColorButton").addEventListener("click", changePad
 document.getElementById("togglePowerUpButton").addEventListener("click", togglePowerUp);
 document.getElementById("speedBoostButton").addEventListener("click", activateSpeedBoost);
 document.getElementById("difficultyIncreaseButton").addEventListener("click", increaseDifficulty);
+document.getElementById("resetGameButton").addEventListener("click", resetRound);
+document.getElementById("toggleAIButton").addEventListener("click", toggleAI);
+document.getElementById("showStatisticsButton").addEventListener("click", showStatistics);
 
 document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp") {

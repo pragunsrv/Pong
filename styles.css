@@ -23,3 +23,7 @@ button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+#statistics {
+    margin-top: 20px;
+}
