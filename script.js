@@ -45,7 +45,8 @@ const ball = {
     dx: 4,
     dy: 4,
     color: "#fff",
-    trail: []
+    trail: [],
+    trailEffect: 0.1 // Trail effect intensity
 };
 
 const powerUp = {
@@ -56,9 +57,12 @@ const powerUp = {
     active: true
 };
 
+const tournamentRounds = 3;
+let currentRound = 0;
 let isPaused = false;
 let isGameOver = false;
 let difficulty = 1;
+let isTournamentMode = false;
 
 function drawRect(x, y, w, h, color) {
     context.fillStyle = color;
@@ -79,6 +83,14 @@ function drawText(text, x, y, color) {
     context.fillText(text, x, y);
 }
 
+function drawGradient() {
+    const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, "#2980b9");
+    gradient.addColorStop(1, "#8e44ad");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+}
+
 function movePaddle(paddle) {
     if (paddle.y < 0) {
         paddle.y = 0;
@@ -93,7 +105,7 @@ function update() {
         ball.y += ball.dy;
 
         ball.trail.push({ x: ball.x, y: ball.y });
-        if (ball.trail.length > 10) {
+        if (ball.trail.length > 20) {
             ball.trail.shift();
         }
 
@@ -103,12 +115,30 @@ function update() {
 
         if (ball.x + ball.radius > canvas.width) {
             player.score++;
-            resetBall();
+            if (player.score >= maxScore) {
+                if (currentRound < tournamentRounds - 1) {
+                    currentRound++;
+                    resetRound();
+                } else {
+                    isGameOver = true;
+                }
+            } else {
+                resetBall();
+            }
         }
 
         if (ball.x - ball.radius < 0) {
             ai.score++;
-            resetBall();
+            if (ai.score >= maxScore) {
+                if (currentRound < tournamentRounds - 1) {
+                    currentRound++;
+                    resetRound();
+                } else {
+                    isGameOver = true;
+                }
+            } else {
+                resetBall();
+            }
         }
 
         if (ball.x - ball.radius < player.x + player.width && ball.y > player.y && ball.y < player.y + player.height) {
@@ -125,10 +155,6 @@ function update() {
 
         movePaddle(player);
         movePaddle(ai);
-
-        if (player.score === maxScore || ai.score === maxScore) {
-            isGameOver = true;
-        }
 
         if (powerUp.active) {
             if (ball.x - ball.radius < powerUp.x + powerUp.radius && ball.x + ball.radius > powerUp.x - powerUp.radius &&
@@ -176,7 +202,16 @@ function deactivatePowerUp(player) {
     player.dy /= 2; // Revert paddle speed
 }
 
+function resetRound() {
+    player.y = canvas.height / 2 - paddleHeight / 2;
+    ai.y = canvas.height / 2 - paddleHeight / 2;
+    resetBall();
+    resetPowerUp();
+    isGameOver = false;
+}
+
 function render() {
+    drawGradient();
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     drawRect(player.x, player.y, player.width, player.height, player.color);
@@ -184,7 +219,7 @@ function render() {
 
     for (let i = 0; i < ball.trail.length; i++) {
         const alpha = i / ball.trail.length;
-        drawCircle(ball.trail[i].x, ball.trail[i].y, ball.radius, `rgba(255, 255, 255, ${alpha})`);
+        drawCircle(ball.trail[i].x, ball.trail[i].y, ball.radius, `rgba(255, 255, 255, ${alpha * ball.trailEffect})`);
     }
 
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
@@ -193,61 +228,59 @@ function render() {
         drawCircle(powerUp.x, powerUp.y, powerUp.radius, powerUp.color);
     }
 
-    drawText(player.score, canvas.width / 4, canvas.height / 5, "#fff");
-    drawText(ai.score, 3 * canvas.width / 4, canvas.height / 5, "#fff");
+    drawText(player.score, canvas.width / 4, 50, "#fff");
+    drawText(ai.score, (3 * canvas.width) / 4, 50, "#fff");
+    drawText(`Round ${currentRound + 1} of ${tournamentRounds}`, canvas.width / 2, canvas.height - 50, "#fff");
 
     if (isGameOver) {
-        drawText("Game Over", canvas.width / 2 - 80, canvas.height / 2, "#fff");
-        drawText("Press R to Restart", canvas.width / 2 - 120, canvas.height / 2 + 40, "#fff");
+        drawText("Game Over! Press 'R' to Restart", canvas.width / 2, canvas.height / 2, "#fff");
     }
 }
 
 function gameLoop() {
-    update();
+    if (!isPaused) {
+        update();
+    }
     render();
     requestAnimationFrame(gameLoop);
 }
 
-canvas.addEventListener("mousemove", function (event) {
-    let rect = canvas.getBoundingClientRect();
-    player.y = event.clientY - rect.top - player.height / 2;
-});
-
-document.getElementById("pauseButton").addEventListener("click", function () {
+function pauseGame() {
     isPaused = true;
     document.getElementById("pauseButton").style.display = "none";
-    document.getElementById("resumeButton").style.display = "inline";
-});
+    document.getElementById("resumeButton").style.display = "block";
+}
 
-document.getElementById("resumeButton").addEventListener("click", function () {
+function resumeGame() {
     isPaused = false;
+    document.getElementById("pauseButton").style.display = "block";
     document.getElementById("resumeButton").style.display = "none";
-    document.getElementById("pauseButton").style.display = "inline";
-});
+}
 
-document.addEventListener("keydown", function (event) {
-    if (event.key === "r" || event.key === "R") {
+function startTournament() {
+    currentRound = 0;
+    player.score = 0;
+    ai.score = 0;
+    resetRound();
+    isTournamentMode = true;
+    document.getElementById("startTournamentButton").style.display = "none";
+}
+
+document.getElementById("pauseButton").addEventListener("click", pauseGame);
+document.getElementById("resumeButton").addEventListener("click", resumeGame);
+document.getElementById("startTournamentButton").addEventListener("click", startTournament);
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp") {
+        player.y -= player.dy;
+    } else if (e.key === "ArrowDown") {
+        player.y += player.dy;
+    } else if (e.key === "r" || e.key === "R") {
         if (isGameOver) {
-            player.score = 0;
-            ai.score = 0;
-            isGameOver = false;
-            resetBall();
+            resetRound();
         }
-    } else if (event.key === "1") {
-        difficulty = 1;
-        ai.difficulty = aiDifficulties[0];
-    } else if (event.key === "2") {
-        difficulty = 2;
-        ai.difficulty = aiDifficulties[1];
-    } else if (event.key === "3") {
-        difficulty = 3;
-        ai.difficulty = aiDifficulties[2];
-    } else if (event.key === "4") {
-        difficulty = 4;
-        ai.difficulty = aiDifficulties[3];
-    } else if (event.key === "5") {
-        difficulty = 5;
-        ai.difficulty = aiDifficulties[4];
+    } else if (e.key >= "1" && e.key <= "5") {
+        difficulty = aiDifficulties[e.key - 1];
     }
 });
 
