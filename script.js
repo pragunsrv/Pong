@@ -7,6 +7,7 @@ canvas.height = 600;
 const paddleWidth = 10;
 const paddleHeight = 100;
 const ballRadius = 10;
+const maxScore = 10; // Set the maximum score to end the game
 
 const player = {
     x: 0,
@@ -40,6 +41,7 @@ const ball = {
 };
 
 let isPaused = false;
+let isGameOver = false;
 
 function drawRect(x, y, w, h, color) {
     context.fillStyle = color;
@@ -69,7 +71,7 @@ function movePaddle(paddle) {
 }
 
 function update() {
-    if (!isPaused) {
+    if (!isPaused && !isGameOver) {
         ball.x += ball.dx;
         ball.y += ball.dy;
 
@@ -106,6 +108,10 @@ function update() {
 
         movePaddle(player);
         movePaddle(ai);
+
+        if (player.score === maxScore || ai.score === maxScore) {
+            isGameOver = true;
+        }
     }
 }
 
@@ -131,6 +137,11 @@ function render() {
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
     drawText(player.score, canvas.width / 4, canvas.height / 5, "#fff");
     drawText(ai.score, 3 * canvas.width / 4, canvas.height / 5, "#fff");
+
+    if (isGameOver) {
+        drawText("Game Over", canvas.width / 2 - 80, canvas.height / 2, "#fff");
+        drawText("Press R to Restart", canvas.width / 2 - 120, canvas.height / 2 + 40, "#fff");
+    }
 }
 
 function gameLoop() {
@@ -154,6 +165,16 @@ document.getElementById("resumeButton").addEventListener("click", function () {
     isPaused = false;
     document.getElementById("resumeButton").style.display = "none";
     document.getElementById("pauseButton").style.display = "inline";
+});
+
+document.addEventListener("keydown", function (event) {
+    if (event.key === "r" || event.key === "R") {
+        if (isGameOver) {
+            player.score = 0;
+            ai.score = 0;
+            isGameOver = false;
+        }
+    }
 });
 
 gameLoop();
