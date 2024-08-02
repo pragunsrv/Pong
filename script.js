@@ -13,7 +13,7 @@ const player = {
     y: canvas.height / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    color: "#fff",
+    color: "#3498db",
     dy: 5,
     score: 0
 };
@@ -23,7 +23,7 @@ const ai = {
     y: canvas.height / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    color: "#fff",
+    color: "#e74c3c",
     dy: 5,
     score: 0
 };
@@ -35,7 +35,8 @@ const ball = {
     speed: 4,
     dx: 4,
     dy: 4,
-    color: "#fff"
+    color: "#fff",
+    trail: []
 };
 
 let isPaused = false;
@@ -72,6 +73,11 @@ function update() {
         ball.x += ball.dx;
         ball.y += ball.dy;
 
+        ball.trail.push({ x: ball.x, y: ball.y });
+        if (ball.trail.length > 10) {
+            ball.trail.shift();
+        }
+
         if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
             ball.dy *= -1;
         }
@@ -86,13 +92,15 @@ function update() {
             resetBall();
         }
 
-    if (ball.x - ball.radius < player.x + player.width && ball.y > player.y && ball.y < player.y + player.height) {
-        ball.dx *= -1;
-    }
+        if (ball.x - ball.radius < player.x + player.width && ball.y > player.y && ball.y < player.y + player.height) {
+            ball.dx *= -1;
+            ball.speed += 0.5;
+        }
 
-    if (ball.x + ball.radius > ai.x && ball.y > ai.y && ball.y < ai.y + ai.height) {
-        ball.dx *= -1;
-    }
+        if (ball.x + ball.radius > ai.x && ball.y > ai.y && ball.y < ai.y + ai.height) {
+            ball.dx *= -1;
+            ball.speed += 0.5;
+        }
 
         ai.y += (ball.y - (ai.y + ai.height / 2)) * 0.1;
 
@@ -106,6 +114,7 @@ function resetBall() {
     ball.y = canvas.height / 2;
     ball.dx = ball.speed * (Math.random() > 0.5 ? 1 : -1);
     ball.dy = ball.speed * (Math.random() > 0.5 ? 1 : -1);
+    ball.trail = [];
 }
 
 function render() {
@@ -113,6 +122,12 @@ function render() {
 
     drawRect(player.x, player.y, player.width, player.height, player.color);
     drawRect(ai.x, ai.y, ai.width, ai.height, ai.color);
+
+    for (let i = 0; i < ball.trail.length; i++) {
+        const alpha = i / ball.trail.length;
+        drawCircle(ball.trail[i].x, ball.trail[i].y, ball.radius, `rgba(255, 255, 255, ${alpha})`);
+    }
+
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
     drawText(player.score, canvas.width / 4, canvas.height / 5, "#fff");
     drawText(ai.score, 3 * canvas.width / 4, canvas.height / 5, "#fff");
