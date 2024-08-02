@@ -10,6 +10,7 @@ const ballRadius = 10;
 const maxScore = 10;
 const powerUpRadius = 15;
 const powerUpDuration = 5000; // 5 seconds
+const aiDifficulties = [0.1, 0.2, 0.3, 0.4, 0.5]; // Different levels of difficulty
 let powerUpActive = false;
 let powerUpTimer = 0;
 
@@ -32,7 +33,8 @@ const ai = {
     color: "#e74c3c",
     dy: 5,
     score: 0,
-    powerUp: false
+    powerUp: false,
+    difficulty: aiDifficulties[0] // Start with the easiest difficulty
 };
 
 const ball = {
@@ -119,7 +121,7 @@ function update() {
             ball.speed += 0.5 * difficulty;
         }
 
-        ai.y += (ball.y - (ai.y + ai.height / 2)) * 0.1 * difficulty;
+        ai.y += (ball.y - (ai.y + ai.height / 2)) * ai.difficulty * difficulty;
 
         movePaddle(player);
         movePaddle(ai);
@@ -231,6 +233,21 @@ document.addEventListener("keydown", function (event) {
             isGameOver = false;
             resetBall();
         }
+    } else if (event.key === "1") {
+        difficulty = 1;
+        ai.difficulty = aiDifficulties[0];
+    } else if (event.key === "2") {
+        difficulty = 2;
+        ai.difficulty = aiDifficulties[1];
+    } else if (event.key === "3") {
+        difficulty = 3;
+        ai.difficulty = aiDifficulties[2];
+    } else if (event.key === "4") {
+        difficulty = 4;
+        ai.difficulty = aiDifficulties[3];
+    } else if (event.key === "5") {
+        difficulty = 5;
+        ai.difficulty = aiDifficulties[4];
     }
 });
 
