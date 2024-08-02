@@ -14,7 +14,8 @@ const player = {
     width: paddleWidth,
     height: paddleHeight,
     color: "#fff",
-    dy: 5
+    dy: 5,
+    score: 0
 };
 
 const ai = {
@@ -23,7 +24,8 @@ const ai = {
     width: paddleWidth,
     height: paddleHeight,
     color: "#fff",
-    dy: 5
+    dy: 5,
+    score: 0
 };
 
 const ball = {
@@ -49,6 +51,12 @@ function drawCircle(x, y, r, color) {
     context.fill();
 }
 
+function drawText(text, x, y, color) {
+    context.fillStyle = color;
+    context.font = "32px Arial";
+    context.fillText(text, x, y);
+}
+
 function movePaddle(paddle) {
     if (paddle.y < 0) {
         paddle.y = 0;
@@ -66,10 +74,12 @@ function update() {
     }
 
     if (ball.x + ball.radius > canvas.width) {
+        player.score++;
         resetBall();
     }
 
     if (ball.x - ball.radius < 0) {
+        ai.score++;
         resetBall();
     }
 
@@ -80,6 +90,8 @@ function update() {
     if (ball.x + ball.radius > ai.x && ball.y > ai.y && ball.y < ai.y + ai.height) {
         ball.dx *= -1;
     }
+
+    ai.y += (ball.y - (ai.y + ai.height / 2)) * 0.1;
 
     movePaddle(player);
     movePaddle(ai);
@@ -97,6 +109,8 @@ function render() {
     drawRect(player.x, player.y, player.width, player.height, player.color);
     drawRect(ai.x, ai.y, ai.width, ai.height, ai.color);
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
+    drawText(player.score, canvas.width / 4, canvas.height / 5, "#fff");
+    drawText(ai.score, 3 * canvas.width / 4, canvas.height / 5, "#fff");
 }
 
 function gameLoop() {
