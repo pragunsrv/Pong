@@ -7,7 +7,11 @@ canvas.height = 600;
 const paddleWidth = 10;
 const paddleHeight = 100;
 const ballRadius = 10;
-const maxScore = 10; // Set the maximum score to end the game
+const maxScore = 10;
+const powerUpRadius = 15;
+const powerUpDuration = 5000; // 5 seconds
+let powerUpActive = false;
+let powerUpTimer = 0;
 
 const player = {
     x: 0,
@@ -16,7 +20,8 @@ const player = {
     height: paddleHeight,
     color: "#3498db",
     dy: 5,
-    score: 0
+    score: 0,
+    powerUp: false
 };
 
 const ai = {
@@ -26,7 +31,8 @@ const ai = {
     height: paddleHeight,
     color: "#e74c3c",
     dy: 5,
-    score: 0
+    score: 0,
+    powerUp: false
 };
 
 const ball = {
@@ -40,8 +46,17 @@ const ball = {
     trail: []
 };
 
+const powerUp = {
+    x: Math.random() * (canvas.width - 2 * powerUpRadius) + powerUpRadius,
+    y: Math.random() * (canvas.height - 2 * powerUpRadius) + powerUpRadius,
+    radius: powerUpRadius,
+    color: "#f1c40f",
+    active: true
+};
+
 let isPaused = false;
 let isGameOver = false;
+let difficulty = 1;
 
 function drawRect(x, y, w, h, color) {
     context.fillStyle = color;
@@ -96,21 +111,37 @@ function update() {
 
         if (ball.x - ball.radius < player.x + player.width && ball.y > player.y && ball.y < player.y + player.height) {
             ball.dx *= -1;
-            ball.speed += 0.5;
+            ball.speed += 0.5 * difficulty;
         }
 
         if (ball.x + ball.radius > ai.x && ball.y > ai.y && ball.y < ai.y + ai.height) {
             ball.dx *= -1;
-            ball.speed += 0.5;
+            ball.speed += 0.5 * difficulty;
         }
 
-        ai.y += (ball.y - (ai.y + ai.height / 2)) * 0.1;
+        ai.y += (ball.y - (ai.y + ai.height / 2)) * 0.1 * difficulty;
 
         movePaddle(player);
         movePaddle(ai);
 
         if (player.score === maxScore || ai.score === maxScore) {
             isGameOver = true;
+        }
+
+        if (powerUp.active) {
+            if (ball.x - ball.radius < powerUp.x + powerUp.radius && ball.x + ball.radius > powerUp.x - powerUp.radius &&
+                ball.y - ball.radius < powerUp.y + powerUp.radius && ball.y + ball.radius > powerUp.y - powerUp.radius) {
+                powerUp.active = false;
+                activatePowerUp(player);
+            }
+        } else {
+            if (Date.now() - powerUpTimer > 10000) { // New power-up every 10 seconds
+                resetPowerUp();
+            }
+        }
+
+        if (player.powerUp && Date.now() - powerUpTimer > powerUpDuration) {
+            deactivatePowerUp(player);
         }
     }
 }
@@ -121,6 +152,26 @@ function resetBall() {
     ball.dx = ball.speed * (Math.random() > 0.5 ? 1 : -1);
     ball.dy = ball.speed * (Math.random() > 0.5 ? 1 : -1);
     ball.trail = [];
+}
+
+function resetPowerUp() {
+    powerUp.x = Math.random() * (canvas.width - 2 * powerUpRadius) + powerUpRadius;
+    powerUp.y = Math.random() * (canvas.height - 2 * powerUpRadius) + powerUpRadius;
+    powerUp.active = true;
+    powerUpTimer = Date.now();
+}
+
+function activatePowerUp(player) {
+    player.powerUp = true;
+    powerUpTimer = Date.now();
+    player.color = "#2ecc71"; // Change color to indicate power-up
+    player.dy *= 2; // Increase paddle speed
+}
+
+function deactivatePowerUp(player) {
+    player.powerUp = false;
+    player.color = "#3498db"; // Revert color
+    player.dy /= 2; // Revert paddle speed
 }
 
 function render() {
@@ -135,6 +186,11 @@ function render() {
     }
 
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
+
+    if (powerUp.active) {
+        drawCircle(powerUp.x, powerUp.y, powerUp.radius, powerUp.color);
+    }
+
     drawText(player.score, canvas.width / 4, canvas.height / 5, "#fff");
     drawText(ai.score, 3 * canvas.width / 4, canvas.height / 5, "#fff");
 
@@ -173,8 +229,11 @@ document.addEventListener("keydown", function (event) {
             player.score = 0;
             ai.score = 0;
             isGameOver = false;
+            resetBall();
         }
     }
 });
 
+resetBall();
+resetPowerUp();
 gameLoop();
