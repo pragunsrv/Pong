@@ -16,6 +16,9 @@ const colorOptions = ["#3498db", "#e74c3c", "#2ecc71", "#f39c12", "#9b59b6"]; //
 let powerUpActive = false;
 let powerUpTimer = 0;
 let currentColorIndex = 0;
+let speedBoost = false;
+let speedBoostTimer = 0;
+let difficultyIncrement = 0;
 
 const player = {
     x: 0,
@@ -67,6 +70,7 @@ let isGameOver = false;
 let difficulty = 1;
 let isTournamentMode = false;
 let isSpectatorMode = false;
+let powerUpType = "speed"; // Can be "speed" or "size"
 
 function drawRect(x, y, w, h, color) {
     context.fillStyle = color;
@@ -193,6 +197,11 @@ function update() {
             deactivatePowerUp(player);
         }
 
+        if (speedBoost && Date.now() - speedBoostTimer > 5000) { // Speed boost lasts 5 seconds
+            speedBoost = false;
+            ball.speed -= 2;
+        }
+
         // Adaptive AI Difficulty
         if (player.score > ai.score) {
             ai.difficulty = aiDifficulties[Math.min(player.score, aiDifficulties.length - 1)];
@@ -205,9 +214,9 @@ function update() {
 function resetBall() {
     ball.x = canvas.width / 2;
     ball.y = canvas.height / 2;
-    ball.dx = ball.speed * (Math.random() > 0.5 ? 1 : -1);
-    ball.dy = ball.speed * (Math.random() > 0.5 ? 1 : -1);
-    ball.trail = [];
+    ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
+    ball.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
+    ball.speed = 4;
 }
 
 function resetPowerUp() {
@@ -228,12 +237,28 @@ function deactivatePowerUp(player) {
     player.color = colorOptions[currentColorIndex];
 }
 
+function togglePowerUp() {
+    powerUpType = powerUpType === "speed" ? "size" : "speed";
+    document.getElementById("togglePowerUpButton").textContent = `Toggle Power-Up: ${powerUpType === "speed" ? "Size" : "Speed"}`;
+}
+
+function activateSpeedBoost() {
+    speedBoost = true;
+    speedBoostTimer = Date.now();
+    ball.speed += 2;
+}
+
+function increaseDifficulty() {
+    difficultyIncrement += 0.1;
+}
+
 function resetRound() {
     resetBall();
     resetPowerUp();
     ai.y = canvas.height / 2 - ai.height / 2;
     player.y = canvas.height / 2 - player.height / 2;
     isGameOver = false;
+    speedBoost = false;
 }
 
 function render() {
@@ -312,6 +337,9 @@ document.getElementById("resumeButton").addEventListener("click", resumeGame);
 document.getElementById("startTournamentButton").addEventListener("click", startTournament);
 document.getElementById("spectatorModeButton").addEventListener("click", toggleSpectatorMode);
 document.getElementById("changeColorButton").addEventListener("click", changePaddleColor);
+document.getElementById("togglePowerUpButton").addEventListener("click", togglePowerUp);
+document.getElementById("speedBoostButton").addEventListener("click", activateSpeedBoost);
+document.getElementById("difficultyIncreaseButton").addEventListener("click", increaseDifficulty);
 
 document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp") {
