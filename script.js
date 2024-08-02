@@ -11,24 +11,18 @@ const maxScore = 10;
 const powerUpRadius = 15;
 const powerUpDuration = 5000; // 5 seconds
 const aiDifficulties = [0.1, 0.2, 0.3, 0.4, 0.5]; // Different levels of difficulty
-const spectatorAI = {
-    x: canvas.width - paddleWidth,
-    y: canvas.height / 2 - paddleHeight / 2,
-    width: paddleWidth,
-    height: paddleHeight,
-    color: "#e74c3c",
-    dy: 5,
-    difficulty: aiDifficulties[0]
-};
+const colorOptions = ["#3498db", "#e74c3c", "#2ecc71", "#f39c12", "#9b59b6"]; // Paddle color options
+
 let powerUpActive = false;
 let powerUpTimer = 0;
+let currentColorIndex = 0;
 
 const player = {
     x: 0,
     y: canvas.height / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    color: "#3498db",
+    color: colorOptions[currentColorIndex],
     dy: 5,
     score: 0,
     powerUp: false
@@ -174,7 +168,6 @@ function update() {
         ai.y += (ball.y - (ai.y + ai.height / 2)) * ai.difficulty * difficulty;
 
         if (isSpectatorMode) {
-            spectatorAI.y += (ball.y - (spectatorAI.y + spectatorAI.height / 2)) * spectatorAI.difficulty * difficulty;
             if (ball.x + ball.radius > spectatorAI.x && ball.y > spectatorAI.y && ball.y < spectatorAI.y + spectatorAI.height) {
                 ball.dx *= -1;
                 ball.speed += 0.5 * difficulty;
@@ -199,6 +192,13 @@ function update() {
         if (player.powerUp && Date.now() - powerUpTimer > powerUpDuration) {
             deactivatePowerUp(player);
         }
+
+        // Adaptive AI Difficulty
+        if (player.score > ai.score) {
+            ai.difficulty = aiDifficulties[Math.min(player.score, aiDifficulties.length - 1)];
+        } else {
+            ai.difficulty = aiDifficulties[Math.min(ai.score, aiDifficulties.length - 1)];
+        }
     }
 }
 
@@ -219,13 +219,13 @@ function resetPowerUp() {
 
 function activatePowerUp(player) {
     player.powerUp = true;
+    player.color = "#e67e22";
     powerUpTimer = Date.now();
-    player.color = "#2ecc71";
 }
 
 function deactivatePowerUp(player) {
     player.powerUp = false;
-    player.color = "#3498db";
+    player.color = colorOptions[currentColorIndex];
 }
 
 function resetRound() {
@@ -246,6 +246,11 @@ function render() {
     }
 
     drawRect(player.x, player.y, player.width, player.height, player.color);
+
+    ball.trail.forEach((point, index) => {
+        const opacity = 1 - (index / ball.trail.length);
+        drawCircle(point.x, point.y, ball.radius, `rgba(255, 255, 255, ${opacity})`);
+    });
 
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
 
@@ -297,10 +302,16 @@ function toggleSpectatorMode() {
     resetRound();
 }
 
+function changePaddleColor() {
+    currentColorIndex = (currentColorIndex + 1) % colorOptions.length;
+    player.color = colorOptions[currentColorIndex];
+}
+
 document.getElementById("pauseButton").addEventListener("click", pauseGame);
 document.getElementById("resumeButton").addEventListener("click", resumeGame);
 document.getElementById("startTournamentButton").addEventListener("click", startTournament);
 document.getElementById("spectatorModeButton").addEventListener("click", toggleSpectatorMode);
+document.getElementById("changeColorButton").addEventListener("click", changePaddleColor);
 
 document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp") {
