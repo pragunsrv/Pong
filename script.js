@@ -85,10 +85,12 @@ function update() {
 
     if (ball.x - ball.radius < player.x + player.width && ball.y > player.y && ball.y < player.y + player.height) {
         ball.dx *= -1;
+        ball.speed += 0.5;
     }
 
     if (ball.x + ball.radius > ai.x && ball.y > ai.y && ball.y < ai.y + ai.height) {
         ball.dx *= -1;
+        ball.speed += 0.5;
     }
 
     ai.y += (ball.y - (ai.y + ai.height / 2)) * 0.1;
@@ -100,7 +102,8 @@ function update() {
 function resetBall() {
     ball.x = canvas.width / 2;
     ball.y = canvas.height / 2;
-    ball.dx *= -1;
+    ball.dx = ball.speed * (Math.random() > 0.5 ? 1 : -1);
+    ball.dy = ball.speed * (Math.random() > 0.5 ? 1 : -1);
 }
 
 function render() {
