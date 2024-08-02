@@ -86,15 +86,13 @@ function update() {
             resetBall();
         }
 
-        if (ball.x - ball.radius < player.x + player.width && ball.y > player.y && ball.y < player.y + player.height) {
-            ball.dx *= -1;
-            ball.speed += 0.5;
-        }
+    if (ball.x - ball.radius < player.x + player.width && ball.y > player.y && ball.y < player.y + player.height) {
+        ball.dx *= -1;
+    }
 
-        if (ball.x + ball.radius > ai.x && ball.y > ai.y && ball.y < ai.y + ai.height) {
-            ball.dx *= -1;
-            ball.speed += 0.5;
-        }
+    if (ball.x + ball.radius > ai.x && ball.y > ai.y && ball.y < ai.y + ai.height) {
+        ball.dx *= -1;
+    }
 
         ai.y += (ball.y - (ai.y + ai.height / 2)) * 0.1;
 
