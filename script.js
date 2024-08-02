@@ -11,6 +11,15 @@ const maxScore = 10;
 const powerUpRadius = 15;
 const powerUpDuration = 5000; // 5 seconds
 const aiDifficulties = [0.1, 0.2, 0.3, 0.4, 0.5]; // Different levels of difficulty
+const spectatorAI = {
+    x: canvas.width - paddleWidth,
+    y: canvas.height / 2 - paddleHeight / 2,
+    width: paddleWidth,
+    height: paddleHeight,
+    color: "#e74c3c",
+    dy: 5,
+    difficulty: aiDifficulties[0]
+};
 let powerUpActive = false;
 let powerUpTimer = 0;
 
@@ -34,7 +43,7 @@ const ai = {
     dy: 5,
     score: 0,
     powerUp: false,
-    difficulty: aiDifficulties[0] // Start with the easiest difficulty
+    difficulty: aiDifficulties[0]
 };
 
 const ball = {
@@ -63,6 +72,7 @@ let isPaused = false;
 let isGameOver = false;
 let difficulty = 1;
 let isTournamentMode = false;
+let isSpectatorMode = false;
 
 function drawRect(x, y, w, h, color) {
     context.fillStyle = color;
@@ -77,9 +87,9 @@ function drawCircle(x, y, r, color) {
     context.fill();
 }
 
-function drawText(text, x, y, color) {
+function drawText(text, x, y, color, fontSize = "32px") {
     context.fillStyle = color;
-    context.font = "32px Arial";
+    context.font = `${fontSize} Arial`;
     context.fillText(text, x, y);
 }
 
@@ -89,6 +99,16 @@ function drawGradient() {
     gradient.addColorStop(1, "#8e44ad");
     context.fillStyle = gradient;
     context.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawAnimatedScore(score, x, y) {
+    context.font = "48px Arial";
+    const scoreString = score.toString();
+    const textWidth = context.measureText(scoreString).width;
+    for (let i = 0; i < scoreString.length; i++) {
+        context.fillStyle = `rgba(255, 255, 255, ${Math.sin(Date.now() / 500)})`;
+        context.fillText(scoreString[i], x + i * (textWidth / scoreString.length), y);
+    }
 }
 
 function movePaddle(paddle) {
@@ -153,6 +173,14 @@ function update() {
 
         ai.y += (ball.y - (ai.y + ai.height / 2)) * ai.difficulty * difficulty;
 
+        if (isSpectatorMode) {
+            spectatorAI.y += (ball.y - (spectatorAI.y + spectatorAI.height / 2)) * spectatorAI.difficulty * difficulty;
+            if (ball.x + ball.radius > spectatorAI.x && ball.y > spectatorAI.y && ball.y < spectatorAI.y + spectatorAI.height) {
+                ball.dx *= -1;
+                ball.speed += 0.5 * difficulty;
+            }
+        }
+
         movePaddle(player);
         movePaddle(ai);
 
@@ -192,35 +220,32 @@ function resetPowerUp() {
 function activatePowerUp(player) {
     player.powerUp = true;
     powerUpTimer = Date.now();
-    player.color = "#2ecc71"; // Change color to indicate power-up
-    player.dy *= 2; // Increase paddle speed
+    player.color = "#2ecc71";
 }
 
 function deactivatePowerUp(player) {
     player.powerUp = false;
-    player.color = "#3498db"; // Revert color
-    player.dy /= 2; // Revert paddle speed
+    player.color = "#3498db";
 }
 
 function resetRound() {
-    player.y = canvas.height / 2 - paddleHeight / 2;
-    ai.y = canvas.height / 2 - paddleHeight / 2;
     resetBall();
     resetPowerUp();
+    ai.y = canvas.height / 2 - ai.height / 2;
+    player.y = canvas.height / 2 - player.height / 2;
     isGameOver = false;
 }
 
 function render() {
     drawGradient();
-    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (isSpectatorMode) {
+        drawRect(spectatorAI.x, spectatorAI.y, spectatorAI.width, spectatorAI.height, spectatorAI.color);
+    } else {
+        drawRect(ai.x, ai.y, ai.width, ai.height, ai.color);
+    }
 
     drawRect(player.x, player.y, player.width, player.height, player.color);
-    drawRect(ai.x, ai.y, ai.width, ai.height, ai.color);
-
-    for (let i = 0; i < ball.trail.length; i++) {
-        const alpha = i / ball.trail.length;
-        drawCircle(ball.trail[i].x, ball.trail[i].y, ball.radius, `rgba(255, 255, 255, ${alpha * ball.trailEffect})`);
-    }
 
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
 
@@ -228,8 +253,8 @@ function render() {
         drawCircle(powerUp.x, powerUp.y, powerUp.radius, powerUp.color);
     }
 
-    drawText(player.score, canvas.width / 4, 50, "#fff");
-    drawText(ai.score, (3 * canvas.width) / 4, 50, "#fff");
+    drawAnimatedScore(player.score, canvas.width / 4, 50);
+    drawAnimatedScore(ai.score, (3 * canvas.width) / 4, 50);
     drawText(`Round ${currentRound + 1} of ${tournamentRounds}`, canvas.width / 2, canvas.height - 50, "#fff");
 
     if (isGameOver) {
@@ -266,9 +291,16 @@ function startTournament() {
     document.getElementById("startTournamentButton").style.display = "none";
 }
 
+function toggleSpectatorMode() {
+    isSpectatorMode = !isSpectatorMode;
+    document.getElementById("spectatorModeButton").textContent = isSpectatorMode ? "Player Mode" : "Spectator Mode";
+    resetRound();
+}
+
 document.getElementById("pauseButton").addEventListener("click", pauseGame);
 document.getElementById("resumeButton").addEventListener("click", resumeGame);
 document.getElementById("startTournamentButton").addEventListener("click", startTournament);
+document.getElementById("spectatorModeButton").addEventListener("click", toggleSpectatorMode);
 
 document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp") {
