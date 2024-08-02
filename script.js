@@ -19,13 +19,17 @@ let currentColorIndex = 0;
 let speedBoost = false;
 let speedBoostTimer = 0;
 let difficultyIncrement = 0;
+let soundEnabled = false;
+let playerPaddleColor = colorOptions[currentColorIndex];
+let ballColor = "#fff";
+let powerUpColor = "#f1c40f";
 
 const player = {
     x: 0,
     y: canvas.height / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    color: colorOptions[currentColorIndex],
+    color: playerPaddleColor,
     dy: 5,
     score: 0,
     powerUp: false
@@ -50,7 +54,7 @@ const ball = {
     speed: 4,
     dx: 4,
     dy: 4,
-    color: "#fff",
+    color: ballColor,
     trail: [],
     trailEffect: 0.1 // Trail effect intensity
 };
@@ -59,7 +63,7 @@ const powerUp = {
     x: Math.random() * (canvas.width - 2 * powerUpRadius) + powerUpRadius,
     y: Math.random() * (canvas.height - 2 * powerUpRadius) + powerUpRadius,
     radius: powerUpRadius,
-    color: "#f1c40f",
+    color: powerUpColor,
     active: true
 };
 
@@ -165,53 +169,42 @@ function update() {
 
         if (ball.x - ball.radius < player.x + player.width && ball.y > player.y && ball.y < player.y + player.height) {
             ball.dx *= -1;
-            ball.speed += 0.5 * difficulty;
+            ball.speed += 0.1;
+            ball.color = `rgba(255, 255, 255, ${Math.random()})`;
         }
 
         if (ball.x + ball.radius > ai.x && ball.y > ai.y && ball.y < ai.y + ai.height) {
             ball.dx *= -1;
-            ball.speed += 0.5 * difficulty;
+            ball.speed += 0.1;
+            ball.color = `rgba(255, 255, 255, ${Math.random()})`;
         }
 
-        ai.y += (ball.y - (ai.y + ai.height / 2)) * ai.difficulty * difficulty;
-
-        if (isSpectatorMode) {
-            if (ball.x + ball.radius > spectatorAI.x && ball.y > spectatorAI.y && ball.y < spectatorAI.y + spectatorAI.height) {
-                ball.dx *= -1;
-                ball.speed += 0.5 * difficulty;
-            }
+        if (powerUp.active && ball.x + ball.radius > powerUp.x && ball.x - ball.radius < powerUp.x + powerUp.radius &&
+            ball.y + ball.radius > powerUp.y && ball.y - ball.radius < powerUp.y + powerUp.radius) {
+            activatePowerUp(player);
+            powerUp.active = false;
         }
 
-        movePaddle(player);
-        movePaddle(ai);
-
-        if (powerUp.active) {
-            if (ball.x - ball.radius < powerUp.x + powerUp.radius && ball.x + ball.radius > powerUp.x - powerUp.radius &&
-                ball.y - ball.radius < powerUp.y + powerUp.radius && ball.y + ball.radius > powerUp.y - powerUp.radius) {
-                powerUp.active = false;
-                activatePowerUp(player);
-            }
-        } else {
-            if (Date.now() - powerUpTimer > 10000) { // New power-up every 10 seconds
-                resetPowerUp();
-            }
+        if (player.powerUp && Date.now() - powerUpTimer > powerUpDuration) {
+            deactivatePowerUp(player);
         }
 
-        if (player.powerUp) {
-            if (Date.now() - powerUpTimer > powerUpDuration) {
-                deactivatePowerUp(player);
-            }
-        }
-
-        if (speedBoost) {
-            if (Date.now() - speedBoostTimer > 5000) { // Speed boost lasts for 5 seconds
-                ball.speed -= 2;
-                speedBoost = false;
-            }
+        if (speedBoost && Date.now() - speedBoostTimer > 5000) {
+            ball.speed -= 2;
+            speedBoost = false;
         }
 
         if (isTournamentMode) {
             totalGames = player.score + ai.score;
+        }
+
+        if (aiEnabled) {
+            if (ball.y > ai.y + ai.height / 2) {
+                ai.y += ai.dy * ai.difficulty;
+            } else {
+                ai.y -= ai.dy * ai.difficulty;
+            }
+            movePaddle(ai);
         }
     }
 }
@@ -239,7 +232,7 @@ function activatePowerUp(player) {
 
 function deactivatePowerUp(player) {
     player.powerUp = false;
-    player.color = colorOptions[currentColorIndex];
+    player.color = playerPaddleColor;
 }
 
 function togglePowerUp() {
@@ -255,6 +248,7 @@ function activateSpeedBoost() {
 
 function increaseDifficulty() {
     difficultyIncrement += 0.1;
+    ai.difficulty = aiDifficulties[Math.min(Math.floor(difficultyIncrement), aiDifficulties.length - 1)];
 }
 
 function resetRound() {
@@ -349,6 +343,27 @@ function showStatistics() {
     document.getElementById("totalGames").textContent = totalGames;
 }
 
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    document.getElementById("toggleSoundButton").textContent = soundEnabled ? "Sound Off" : "Sound On";
+}
+
+function showCustomColorPicker() {
+    document.getElementById("customColorPicker").style.display = "block";
+}
+
+function applyCustomColors() {
+    const paddleColor = document.getElementById("paddleColor").value;
+    const ballColor = document.getElementById("ballColor").value;
+    const powerUpColor = document.getElementById("powerUpColor").value;
+
+    player.color = paddleColor;
+    ball.color = ballColor;
+    powerUp.color = powerUpColor;
+
+    document.getElementById("customColorPicker").style.display = "none";
+}
+
 document.getElementById("pauseButton").addEventListener("click", pauseGame);
 document.getElementById("resumeButton").addEventListener("click", resumeGame);
 document.getElementById("startTournamentButton").addEventListener("click", startTournament);
@@ -360,6 +375,11 @@ document.getElementById("difficultyIncreaseButton").addEventListener("click", in
 document.getElementById("resetGameButton").addEventListener("click", resetRound);
 document.getElementById("toggleAIButton").addEventListener("click", toggleAI);
 document.getElementById("showStatisticsButton").addEventListener("click", showStatistics);
+document.getElementById("toggleSoundButton").addEventListener("click", toggleSound);
+document.getElementById("setCustomColorButton").addEventListener("click", showCustomColorPicker);
+document.getElementById("applyPaddleColorButton").addEventListener("click", applyCustomColors);
+document.getElementById("applyBallColorButton").addEventListener("click", applyCustomColors);
+document.getElementById("applyPowerUpColorButton").addEventListener("click", applyCustomColors);
 
 document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp") {

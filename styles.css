@@ -1,5 +1,6 @@
 body {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
@@ -25,5 +26,9 @@ button:disabled {
 }
 
 #statistics {
+    margin-top: 20px;
+}
+
+#customColorPicker {
     margin-top: 20px;
 }
