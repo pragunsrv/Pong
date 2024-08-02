@@ -1,172 +1,135 @@
 const canvas = document.getElementById("pongCanvas");
-const context = canvas.getContext("2d");
+const ctx = canvas.getContext("2d");
 
 canvas.width = 800;
 canvas.height = 600;
 
 const paddleWidth = 10;
 const paddleHeight = 100;
-const ballRadius = 10;
-const maxScore = 10;
+const ballSize = 10;
 const powerUpRadius = 15;
-const powerUpDuration = 5000; // 5 seconds
-const aiDifficulties = [0.1, 0.2, 0.3, 0.4, 0.5]; // Different levels of difficulty
-const colorOptions = ["#3498db", "#e74c3c", "#2ecc71", "#f39c12", "#9b59b6"]; // Paddle color options
 
-let powerUpActive = false;
-let powerUpTimer = 0;
-let currentColorIndex = 0;
-let speedBoost = false;
-let speedBoostTimer = 0;
-let difficultyIncrement = 0;
-let soundEnabled = false;
-let playerPaddleColor = colorOptions[currentColorIndex];
-let ballColor = "#fff";
-let powerUpColor = "#f1c40f";
-
-const player = {
-    x: 0,
+let player = {
+    x: 20,
     y: canvas.height / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    color: playerPaddleColor,
+    color: "#00f",
     dy: 5,
     score: 0,
     powerUp: false
 };
 
-const ai = {
-    x: canvas.width - paddleWidth,
+let ai = {
+    x: canvas.width - 30,
     y: canvas.height / 2 - paddleHeight / 2,
     width: paddleWidth,
     height: paddleHeight,
-    color: "#e74c3c",
-    dy: 5,
-    score: 0,
-    powerUp: false,
-    difficulty: aiDifficulties[0]
+    color: "#f00",
+    dy: 3,
+    score: 0
 };
 
-const ball = {
+let ball = {
     x: canvas.width / 2,
     y: canvas.height / 2,
-    radius: ballRadius,
+    radius: ballSize,
+    dx: 4 * (Math.random() > 0.5 ? 1 : -1),
+    dy: 4 * (Math.random() > 0.5 ? 1 : -1),
     speed: 4,
-    dx: 4,
-    dy: 4,
-    color: ballColor,
-    trail: [],
-    trailEffect: 0.1 // Trail effect intensity
+    color: "#fff",
+    trail: []
 };
 
-const powerUp = {
+let powerUp = {
     x: Math.random() * (canvas.width - 2 * powerUpRadius) + powerUpRadius,
     y: Math.random() * (canvas.height - 2 * powerUpRadius) + powerUpRadius,
     radius: powerUpRadius,
-    color: powerUpColor,
+    color: "#0f0",
     active: true
 };
 
-const tournamentRounds = 3;
-let currentRound = 0;
+let keys = {};
 let isPaused = false;
 let isGameOver = false;
-let difficulty = 1;
 let isTournamentMode = false;
 let isSpectatorMode = false;
-let powerUpType = "speed"; // Can be "speed" or "size"
 let aiEnabled = true;
+let powerUpType = "speed";
+let powerUpTimer = Date.now();
+let powerUpDuration = 10000;
+let speedBoost = false;
+let speedBoostTimer = Date.now();
+let difficultyIncrement = 0;
+let aiDifficulties = [1, 1.5, 2, 2.5, 3];
+let currentRound = 0;
+let tournamentRounds = 5;
 let playerWins = 0;
 let aiWins = 0;
 let totalGames = 0;
+let soundEnabled = true;
+let colorOptions = ["#00f", "#0f0", "#f00", "#ff0", "#0ff"];
+let currentColorIndex = 0;
 
-function drawRect(x, y, w, h, color) {
-    context.fillStyle = color;
-    context.fillRect(x, y, w, h);
+function drawRect(x, y, width, height, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, width, height);
 }
 
-function drawCircle(x, y, r, color) {
-    context.fillStyle = color;
-    context.beginPath();
-    context.arc(x, y, r, 0, Math.PI * 2, false);
-    context.closePath();
-    context.fill();
+function drawCircle(x, y, radius, color) {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.closePath();
 }
 
-function drawText(text, x, y, color, fontSize = "32px") {
-    context.fillStyle = color;
-    context.font = `${fontSize} Arial`;
-    context.fillText(text, x, y);
+function drawText(text, x, y, color) {
+    ctx.fillStyle = color;
+    ctx.font = "30px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(text, x, y);
 }
 
 function drawGradient() {
-    const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-    gradient.addColorStop(0, "#2980b9");
-    gradient.addColorStop(1, "#8e44ad");
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, "#000");
+    gradient.addColorStop(1, "#444");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 function drawAnimatedScore(score, x, y) {
-    context.font = "48px Arial";
     const scoreString = score.toString();
-    const textWidth = context.measureText(scoreString).width;
-    for (let i = 0; i < scoreString.length; i++) {
-        context.fillStyle = `rgba(255, 255, 255, ${Math.sin(Date.now() / 500)})`;
-        context.fillText(scoreString[i], x + i * (textWidth / scoreString.length), y);
-    }
+    ctx.fillStyle = "#fff";
+    ctx.font = "50px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(scoreString, x, y);
 }
 
 function movePaddle(paddle) {
-    if (paddle.y < 0) {
-        paddle.y = 0;
-    } else if (paddle.y + paddle.height > canvas.height) {
-        paddle.y = canvas.height - paddle.height;
-    }
+    if (paddle.y < 0) paddle.y = 0;
+    if (paddle.y + paddle.height > canvas.height) paddle.y = canvas.height - paddle.height;
 }
 
 function update() {
-    if (!isPaused && !isGameOver) {
+    if (!isPaused) {
+        // Move player paddle
+        if (keys["ArrowUp"]) player.y -= player.dy;
+        if (keys["ArrowDown"]) player.y += player.dy;
+        
+        movePaddle(player);
+
+        // Move ball
         ball.x += ball.dx;
         ball.y += ball.dy;
-
-        ball.trail.push({ x: ball.x, y: ball.y });
-        if (ball.trail.length > 20) {
-            ball.trail.shift();
-        }
-
+        
+        // Ball bounce
         if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
             ball.dy *= -1;
         }
-
-        if (ball.x + ball.radius > canvas.width) {
-            player.score++;
-            if (player.score >= maxScore) {
-                if (currentRound < tournamentRounds - 1) {
-                    currentRound++;
-                    resetRound();
-                } else {
-                    isGameOver = true;
-                }
-            } else {
-                resetBall();
-            }
-        }
-
-        if (ball.x - ball.radius < 0) {
-            ai.score++;
-            if (ai.score >= maxScore) {
-                if (currentRound < tournamentRounds - 1) {
-                    currentRound++;
-                    resetRound();
-                } else {
-                    isGameOver = true;
-                }
-            } else {
-                resetBall();
-            }
-        }
-
+        
+        // Ball paddle collision
         if (ball.x - ball.radius < player.x + player.width && ball.y > player.y && ball.y < player.y + player.height) {
             ball.dx *= -1;
             ball.speed += 0.1;
@@ -214,187 +177,148 @@ function resetBall() {
     ball.y = canvas.height / 2;
     ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
     ball.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
-    ball.speed = 4;
 }
 
 function resetPowerUp() {
     powerUp.x = Math.random() * (canvas.width - 2 * powerUpRadius) + powerUpRadius;
     powerUp.y = Math.random() * (canvas.height - 2 * powerUpRadius) + powerUpRadius;
     powerUp.active = true;
-    powerUpTimer = Date.now();
 }
 
 function activatePowerUp(player) {
-    player.powerUp = true;
-    player.color = "#e67e22";
-    powerUpTimer = Date.now();
+    if (powerUpType === "speed") {
+        player.powerUp = true;
+        speedBoost = true;
+        speedBoostTimer = Date.now();
+        ball.speed += 2;
+    }
 }
 
 function deactivatePowerUp(player) {
     player.powerUp = false;
-    player.color = playerPaddleColor;
-}
-
-function togglePowerUp() {
-    powerUpType = powerUpType === "speed" ? "size" : "speed";
-    document.getElementById("togglePowerUpButton").textContent = `Toggle Power-Up: ${powerUpType === "speed" ? "Size" : "Speed"}`;
-}
-
-function activateSpeedBoost() {
-    speedBoost = true;
-    speedBoostTimer = Date.now();
-    ball.speed += 2;
-}
-
-function increaseDifficulty() {
-    difficultyIncrement += 0.1;
-    ai.difficulty = aiDifficulties[Math.min(Math.floor(difficultyIncrement), aiDifficulties.length - 1)];
-}
-
-function resetRound() {
-    resetBall();
-    resetPowerUp();
-    ai.y = canvas.height / 2 - ai.height / 2;
-    player.y = canvas.height / 2 - player.height / 2;
-    isGameOver = false;
     speedBoost = false;
+    ball.speed -= 2;
 }
 
-function render() {
+function draw() {
     drawGradient();
-
-    if (isSpectatorMode) {
-        drawRect(spectatorAI.x, spectatorAI.y, spectatorAI.width, spectatorAI.height, spectatorAI.color);
-    } else {
-        drawRect(ai.x, ai.y, ai.width, ai.height, ai.color);
-    }
-
     drawRect(player.x, player.y, player.width, player.height, player.color);
-
-    ball.trail.forEach((point, index) => {
-        const opacity = 1 - (index / ball.trail.length);
-        drawCircle(point.x, point.y, ball.radius, `rgba(255, 255, 255, ${opacity})`);
-    });
-
+    drawRect(ai.x, ai.y, ai.width, ai.height, ai.color);
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
-
     if (powerUp.active) {
         drawCircle(powerUp.x, powerUp.y, powerUp.radius, powerUp.color);
     }
-
-    drawAnimatedScore(player.score, canvas.width / 4, 50);
-    drawAnimatedScore(ai.score, (3 * canvas.width) / 4, 50);
-    drawText(`Round ${currentRound + 1} of ${tournamentRounds}`, canvas.width / 2, canvas.height - 50, "#fff");
-
-    if (isGameOver) {
-        drawText("Game Over! Press 'R' to Restart", canvas.width / 2, canvas.height / 2, "#fff");
-    }
+    drawAnimatedScore(player.score, canvas.width / 4, 30);
+    drawAnimatedScore(ai.score, 3 * canvas.width / 4, 30);
 }
 
 function gameLoop() {
     if (!isPaused) {
         update();
+        draw();
     }
-    render();
     requestAnimationFrame(gameLoop);
 }
 
-function pauseGame() {
+document.addEventListener("keydown", (e) => {
+    keys[e.key] = true;
+});
+
+document.addEventListener("keyup", (e) => {
+    keys[e.key] = false;
+});
+
+document.getElementById("pauseButton").addEventListener("click", () => {
     isPaused = true;
     document.getElementById("pauseButton").style.display = "none";
     document.getElementById("resumeButton").style.display = "block";
-}
+});
 
-function resumeGame() {
+document.getElementById("resumeButton").addEventListener("click", () => {
     isPaused = false;
-    document.getElementById("pauseButton").style.display = "block";
     document.getElementById("resumeButton").style.display = "none";
-}
+    document.getElementById("pauseButton").style.display = "block";
+});
 
-function startTournament() {
-    currentRound = 0;
+document.getElementById("startTournamentButton").addEventListener("click", () => {
+    isTournamentMode = true;
     player.score = 0;
     ai.score = 0;
-    resetRound();
-    isTournamentMode = true;
-    document.getElementById("startTournamentButton").style.display = "none";
-}
+    resetBall();
+    resetPowerUp();
+});
 
-function toggleSpectatorMode() {
+document.getElementById("spectatorModeButton").addEventListener("click", () => {
     isSpectatorMode = !isSpectatorMode;
-    document.getElementById("spectatorModeButton").textContent = isSpectatorMode ? "Player Mode" : "Spectator Mode";
-    resetRound();
-}
+    if (isSpectatorMode) {
+        document.getElementById("spectatorModeButton").textContent = "Spectator Mode: On";
+    } else {
+        document.getElementById("spectatorModeButton").textContent = "Spectator Mode: Off";
+    }
+});
 
-function changePaddleColor() {
+document.getElementById("changeColorButton").addEventListener("click", () => {
     currentColorIndex = (currentColorIndex + 1) % colorOptions.length;
     player.color = colorOptions[currentColorIndex];
-}
+    ai.color = colorOptions[currentColorIndex];
+});
 
-function toggleAI() {
+document.getElementById("togglePowerUpButton").addEventListener("click", () => {
+    powerUpType = powerUpType === "speed" ? "none" : "speed";
+});
+
+document.getElementById("speedBoostButton").addEventListener("click", () => {
+    speedBoost = true;
+    speedBoostTimer = Date.now();
+    ball.speed += 2;
+});
+
+document.getElementById("difficultyIncreaseButton").addEventListener("click", () => {
+    difficultyIncrement++;
+    ai.difficulty = aiDifficulties[difficultyIncrement % aiDifficulties.length];
+});
+
+document.getElementById("resetGameButton").addEventListener("click", () => {
+    player.score = 0;
+    ai.score = 0;
+    resetBall();
+    resetPowerUp();
+    isGameOver = false;
+});
+
+document.getElementById("toggleAIButton").addEventListener("click", () => {
     aiEnabled = !aiEnabled;
     document.getElementById("toggleAIButton").textContent = aiEnabled ? "Disable AI" : "Enable AI";
-}
+});
 
-function showStatistics() {
+document.getElementById("showStatisticsButton").addEventListener("click", () => {
     document.getElementById("statistics").style.display = "block";
     document.getElementById("playerWins").textContent = playerWins;
     document.getElementById("aiWins").textContent = aiWins;
     document.getElementById("totalGames").textContent = totalGames;
-}
-
-function toggleSound() {
-    soundEnabled = !soundEnabled;
-    document.getElementById("toggleSoundButton").textContent = soundEnabled ? "Sound Off" : "Sound On";
-}
-
-function showCustomColorPicker() {
-    document.getElementById("customColorPicker").style.display = "block";
-}
-
-function applyCustomColors() {
-    const paddleColor = document.getElementById("paddleColor").value;
-    const ballColor = document.getElementById("ballColor").value;
-    const powerUpColor = document.getElementById("powerUpColor").value;
-
-    player.color = paddleColor;
-    ball.color = ballColor;
-    powerUp.color = powerUpColor;
-
-    document.getElementById("customColorPicker").style.display = "none";
-}
-
-document.getElementById("pauseButton").addEventListener("click", pauseGame);
-document.getElementById("resumeButton").addEventListener("click", resumeGame);
-document.getElementById("startTournamentButton").addEventListener("click", startTournament);
-document.getElementById("spectatorModeButton").addEventListener("click", toggleSpectatorMode);
-document.getElementById("changeColorButton").addEventListener("click", changePaddleColor);
-document.getElementById("togglePowerUpButton").addEventListener("click", togglePowerUp);
-document.getElementById("speedBoostButton").addEventListener("click", activateSpeedBoost);
-document.getElementById("difficultyIncreaseButton").addEventListener("click", increaseDifficulty);
-document.getElementById("resetGameButton").addEventListener("click", resetRound);
-document.getElementById("toggleAIButton").addEventListener("click", toggleAI);
-document.getElementById("showStatisticsButton").addEventListener("click", showStatistics);
-document.getElementById("toggleSoundButton").addEventListener("click", toggleSound);
-document.getElementById("setCustomColorButton").addEventListener("click", showCustomColorPicker);
-document.getElementById("applyPaddleColorButton").addEventListener("click", applyCustomColors);
-document.getElementById("applyBallColorButton").addEventListener("click", applyCustomColors);
-document.getElementById("applyPowerUpColorButton").addEventListener("click", applyCustomColors);
-
-document.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowUp") {
-        player.y -= player.dy;
-    } else if (e.key === "ArrowDown") {
-        player.y += player.dy;
-    } else if (e.key === "r" || e.key === "R") {
-        if (isGameOver) {
-            resetRound();
-        }
-    } else if (e.key >= "1" && e.key <= "5") {
-        difficulty = aiDifficulties[e.key - 1];
-    }
 });
 
-resetBall();
-resetPowerUp();
+document.getElementById("toggleSoundButton").addEventListener("click", () => {
+    soundEnabled = !soundEnabled;
+    document.getElementById("toggleSoundButton").textContent = soundEnabled ? "Sound Off" : "Sound On";
+});
+
+document.getElementById("setCustomColorButton").addEventListener("click", () => {
+    document.getElementById("customColorPicker").style.display = "block";
+});
+
+document.getElementById("applyPaddleColorButton").addEventListener("click", () => {
+    const color = document.getElementById("paddleColor").value;
+    player.color = color;
+    ai.color = color;
+});
+
+document.getElementById("applyBallColorButton").addEventListener("click", () => {
+    ball.color = document.getElementById("ballColor").value;
+});
+
+document.getElementById("applyPowerUpColorButton").addEventListener("click", () => {
+    powerUp.color = document.getElementById("powerUpColor").value;
+});
+
 gameLoop();

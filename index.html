@@ -8,37 +8,36 @@
 </head>
 <body>
     <canvas id="pongCanvas"></canvas>
-    <button id="pauseButton">Pause</button>
-    <button id="resumeButton" style="display: none;">Resume</button>
-    <button id="startTournamentButton">Start Tournament</button>
-    <button id="spectatorModeButton">Spectator Mode</button>
-    <button id="changeColorButton">Change Paddle Color</button>
-    <button id="togglePowerUpButton">Toggle Power-Up</button>
-    <button id="speedBoostButton">Speed Boost</button>
-    <button id="difficultyIncreaseButton">Increase Difficulty</button>
-    <button id="resetGameButton">Reset Game</button>
-    <button id="toggleAIButton">Toggle AI</button>
-    <button id="showStatisticsButton">Show Statistics</button>
-    <button id="toggleSoundButton">Toggle Sound</button>
-    <button id="setCustomColorButton">Set Custom Paddle Color</button>
-    <button id="changeBallColorButton">Change Ball Color</button>
-    <button id="changePowerUpColorButton">Change Power-Up Color</button>
-    <div id="statistics" style="color: #fff; display: none;">
-        <h3>Game Statistics:</h3>
-        <p>Player Wins: <span id="playerWins">0</span></p>
-        <p>AI Wins: <span id="aiWins">0</span></p>
-        <p>Total Games: <span id="totalGames">0</span></p>
-    </div>
-    <div id="customColorPicker" style="display: none;">
-        <label for="paddleColor">Paddle Color:</label>
-        <input type="color" id="paddleColor">
-        <button id="applyPaddleColorButton">Apply</button>
-        <label for="ballColor">Ball Color:</label>
-        <input type="color" id="ballColor">
-        <button id="applyBallColorButton">Apply</button>
-        <label for="powerUpColor">Power-Up Color:</label>
-        <input type="color" id="powerUpColor">
-        <button id="applyPowerUpColorButton">Apply</button>
+    <div id="controls">
+        <button id="pauseButton">Pause</button>
+        <button id="resumeButton" style="display:none;">Resume</button>
+        <button id="startTournamentButton">Start Tournament</button>
+        <button id="spectatorModeButton">Spectator Mode</button>
+        <button id="changeColorButton">Change Paddle Color</button>
+        <button id="togglePowerUpButton">Toggle Power-Up: Speed</button>
+        <button id="speedBoostButton">Speed Boost</button>
+        <button id="difficultyIncreaseButton">Increase Difficulty</button>
+        <button id="resetGameButton">Reset Game</button>
+        <button id="toggleAIButton">Enable AI</button>
+        <button id="showStatisticsButton">Show Statistics</button>
+        <button id="toggleSoundButton">Sound On</button>
+        <button id="setCustomColorButton">Set Custom Colors</button>
+        <div id="customColorPicker" style="display:none;">
+            <label for="paddleColor">Paddle Color:</label>
+            <input type="color" id="paddleColor">
+            <label for="ballColor">Ball Color:</label>
+            <input type="color" id="ballColor">
+            <label for="powerUpColor">Power-Up Color:</label>
+            <input type="color" id="powerUpColor">
+            <button id="applyPaddleColorButton">Apply Paddle Color</button>
+            <button id="applyBallColorButton">Apply Ball Color</button>
+            <button id="applyPowerUpColorButton">Apply Power-Up Color</button>
+        </div>
+        <div id="statistics" style="display:none;">
+            <p>Player Wins: <span id="playerWins">0</span></p>
+            <p>AI Wins: <span id="aiWins">0</span></p>
+            <p>Total Games: <span id="totalGames">0</span></p>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
